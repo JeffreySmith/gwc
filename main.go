@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	flags "github.com/jessevdk/go-flags"
+	"github.com/jessevdk/go-flags"
 )
 
 type Line struct {
@@ -98,10 +98,26 @@ func main() {
 	var w, b, c int
 	longest := 0
 
-	fileNames, _ := flags.Parse(&opts)
+	fileNames, err := flags.Parse(&opts)
+	
+	if err!=nil{
+		flagsErr, ok := err.(*flags.Error)
+		if ok{
+			if flagsErr.Type == flags.ErrHelp {
+				os.Exit(0)
+				return
+			}
+			if flagsErr.Type == flags.ErrUnknownFlag{
+				fmt.Printf("Use -h or --help for usage information\n")
+				fmt.Printf("Usage: gwc [-Lclmw] [file ...]\n")
 
+			}
+		}
+		os.Exit(1)
+	}
 	info, err := os.Stdin.Stat()
 	if err != nil {
+
 		os.Exit(1)
 	}
 
