@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"unicode/utf8"
 )
@@ -15,7 +17,12 @@ type Line struct {
 	words, bytes, chars int
 }
 
-
+type FileInput struct {
+	lines   []Line
+	name    string
+	count   int
+	longest int
+}
 
 func initLine(text string) Line {
 	line := Line{text: text}
@@ -39,7 +46,6 @@ func parseLines(Lines []Line) (int, int, int) {
 	return wordCount, byteCount, charCount
 }
 
-
 func parseInput(src io.Reader) ([]Line, int, int) {
 	var Lines []Line
 
@@ -52,6 +58,13 @@ func parseInput(src io.Reader) ([]Line, int, int) {
 
 	scanner.Split(bufio.ScanRunes)
 	for scanner.Scan() {
+		if err:= scanner.Err(); err!=nil{
+			if err != io.EOF{
+				panic(err)
+			}else{
+				break
+			}
+		}
 		if scanner.Text() == "\n" {
 			if len(strings.Trim(line, "\n")) > longest {
 				longest = len(strings.Trim(line, "\n"))
@@ -76,11 +89,13 @@ func parseInput(src io.Reader) ([]Line, int, int) {
 
 func main() {
 	var Lines []Line
+	var Files []FileInput
 	var count int
-	var longest int
+
 	var w, b, c int
+	longest := 0
 	word := flag.Bool("w", false, "Display the number of words")
-	bytes := flag.Bool("c", false, "Display the number of bytes")
+	byteOut := flag.Bool("c", false, "Display the number of bytes")
 	lines := flag.Bool("l", false, "Display the number of lines")
 	chars := flag.Bool("m", false, "Display the number of characters. UTF-8 aware")
 
@@ -94,15 +109,14 @@ func main() {
 	}
 
 	//Per the manpages, -m supercedes -c
-	if *bytes && *chars {
-		*bytes = false
+	if *byteOut && *chars {
+		*byteOut = false
 	}
 
-	if !*word && !*lines && (!*bytes && !*chars) {
-		fmt.Println("No options selected")
+	if !*word && !*lines && (!*byteOut && !*chars) {
 		*word = true
 		*lines = true
-		*bytes = true
+		*byteOut = true
 	}
 
 	if len(fileNames) == 0 && info.Mode()&os.ModeCharDevice == 0 {
@@ -112,34 +126,67 @@ func main() {
 	} else if len(fileNames) == 0 {
 		//Run until EOF hit ()
 		reader := bufio.NewReader(os.Stdin)
+		var byteArray []byte
 		for {
-			text, err := reader.ReadString('\n')
+			/*text, err := reader.ReadString('\n')
 			if err != nil {
 				//wc input ends when it receives EOF
-				if err != io.EOF{
+				if err != io.EOF {
 					panic(err)
-				}else{
+				} else {
 					break
 				}
 			}
 			newLine := initLine(text)
-			Lines = append(Lines,newLine)
+			Lines = append(Lines, newLine)
+			*/
+			byte,err := reader.ReadByte()
+			if err != nil{
+				if err != io.EOF{
+					panic(err)
+				}
+				break
+			}
+			byteArray = append(byteArray,byte)
 		}
+		inputReader := bufio.NewReader(bytes.NewBuffer(byteArray))
+		Lines,count,longest = parseInput(inputReader)
 
 	} else {
 		//Process all files passed in
+		for _, file := range fileNames {
+			f, err := os.Open(file)
+			defer f.Close()
+			if err != nil {
+				fmt.Printf("%s: %v: open: No such file or directory\n", filepath.Base(os.Args[0]), file)
+			}
+
+			Lines, count, longest = parseInput(f)
+			newFile := FileInput{lines: Lines, count: count, name: file, longest: longest}
+			Files = append(Files, newFile)
+
+		}
 	}
 
 	//Process output here
 
 	if len(fileNames) > 0 {
-
+		
 	} else {
 		w, b, c = parseLines(Lines)
-		
-		fmt.Printf("%8v%8v%8v\n",w, b, c)
-	}
 
-	fmt.Println(count, longest)
-	fmt.Println(*word, *bytes, *lines, *chars)
+		if *lines {
+			fmt.Printf("%8v",count)
+		}
+		if *word {
+			fmt.Printf("%8v",w)
+		}
+		if *byteOut {
+			fmt.Printf("%8v",b)
+		}
+		if *chars {
+			fmt.Printf("%8v",c)
+		}
+		fmt.Println()
+	}
 }
