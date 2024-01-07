@@ -58,12 +58,12 @@ func parseInput(src io.Reader) ([]Line, int, int) {
 
 	scanner.Split(bufio.ScanRunes)
 	for scanner.Scan() {
-		if err:= scanner.Err(); err!=nil{
-			if err != io.EOF{
+		/*if err := scanner.Err(); err != nil {
+			if err != io.EOF {
 				panic(err)
 			}
 			break
-		}
+		}*/
 		if scanner.Text() == "\n" {
 			if len(strings.Trim(line, "\n")) > longest {
 				longest = len(strings.Trim(line, "\n"))
@@ -97,7 +97,7 @@ func main() {
 	byteOut := flag.Bool("c", false, "Display the number of bytes")
 	lines := flag.Bool("l", false, "Display the number of lines")
 	chars := flag.Bool("m", false, "Display the number of characters. UTF-8 aware")
-
+	longestFlag := flag.Bool("L", false, "Display the number of bytes or characters (if -m is passed). If more than one file is provided, the longest line is reported in 'total'")
 	flag.Parse()
 
 	fileNames := flag.Args()
@@ -123,21 +123,21 @@ func main() {
 		Lines, count, longest = parseInput(os.Stdin)
 
 	} else if len(fileNames) == 0 {
-		//Run until EOF hit ()
+		//Run until EOF hit
 		reader := bufio.NewReader(os.Stdin)
 		var byteArray []byte
 		for {
-			byte,err := reader.ReadByte()
-			if err != nil{
-				if err != io.EOF{
+			byte, err := reader.ReadByte()
+			if err != nil {
+				if err != io.EOF {
 					panic(err)
 				}
 				break
 			}
-			byteArray = append(byteArray,byte)
+			byteArray = append(byteArray, byte)
 		}
 		inputReader := bufio.NewReader(bytes.NewBuffer(byteArray))
-		Lines,count,longest = parseInput(inputReader)
+		Lines, count, longest = parseInput(inputReader)
 
 	} else {
 		//Process all files passed in
@@ -158,21 +158,72 @@ func main() {
 	//Process output here
 
 	if len(fileNames) > 0 {
-		
+		totalLines := 0
+		totalWords := 0
+		totalBytes := 0
+		totalChars := 0
+		longest := 0
+		for _, f := range Files {
+			w, b, c = parseLines(f.lines)
+
+			totalLines += f.count
+			totalWords += w
+			totalBytes += b
+			totalChars += c
+
+			if f.longest > longest {
+				longest = f.longest
+			}
+
+			if *lines {
+				fmt.Printf("%8v", f.count)
+			}
+			if *word {
+				fmt.Printf("%8v", w)
+			}
+			if *byteOut {
+				fmt.Printf("%8v", b)
+			}
+			if *chars {
+				fmt.Printf("%8v", c)
+			}
+			if *longestFlag {
+				fmt.Printf("%8v", f.longest)
+			}
+			fmt.Printf(" %v\n", f.name)
+		}
+		if len(fileNames) > 1 {
+			if *lines {
+				fmt.Printf("%8v", totalLines)
+			}
+			if *word {
+				fmt.Printf("%8v", totalWords)
+			}
+			if *byteOut {
+				fmt.Printf("%8v", totalBytes)
+			}
+			if *chars {
+				fmt.Printf("%8v", totalChars)
+			}
+			if *longestFlag {
+				fmt.Printf("%8v", longest)
+			}
+			fmt.Printf(" total\n")
+		}
 	} else {
 		w, b, c = parseLines(Lines)
 
 		if *lines {
-			fmt.Printf("%8v",count)
+			fmt.Printf("%8v", count)
 		}
 		if *word {
-			fmt.Printf("%8v",w)
+			fmt.Printf("%8v", w)
 		}
 		if *byteOut {
-			fmt.Printf("%8v",b)
+			fmt.Printf("%8v", b)
 		}
 		if *chars {
-			fmt.Printf("%8v",c)
+			fmt.Printf("%8v", c)
 		}
 		fmt.Println()
 	}
