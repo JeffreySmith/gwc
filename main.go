@@ -86,8 +86,8 @@ func main() {
 	var opts struct {
 		WordCount   bool `short:"w" description:"Display the number of words"`
 		LineCount   bool `short:"l" description:"Display the number of lines"`
-		ByteCount   bool `short:"c" description:"Display the number of bytes"`
-		CharCount   bool `short:"m" description:"Display the number of characters. UTF-8 aware. Supercedes -c"`
+		ByteCount   bool `short:"c" description:"Display the number of bytes. Supercedes -m"`
+		CharCount   bool `short:"m" description:"Display the number of characters. UTF-8 aware"`
 		LongestLine bool `short:"L" description:"Display the line with the most bytes or characters (with -m). When there is more than one file, the longest line will be shown as the value for 'total'."`
 	}
 
@@ -105,9 +105,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	//Per the manpages, -m supercedes -c
+	//Per the manpages, -c supercedes -m
 	if opts.ByteCount && opts.CharCount {
-		opts.ByteCount = false
+		opts.CharCount = false
 	}
 	//Default, with no flags provided is to show the line count, word count, and the byte count
 	if !opts.WordCount && !opts.LineCount && (!opts.ByteCount && !opts.CharCount) {
