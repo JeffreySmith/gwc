@@ -15,6 +15,8 @@ type Line struct {
 	words, bytes, chars int
 }
 
+
+
 func initLine(text string) Line {
 	line := Line{text: text}
 	line.words = len(strings.Fields(line.text))
@@ -36,6 +38,8 @@ func parseLines(Lines []Line) (int, int, int) {
 
 	return wordCount, byteCount, charCount
 }
+
+
 func parseInput(src io.Reader) ([]Line, int, int) {
 	var Lines []Line
 
@@ -77,7 +81,7 @@ func main() {
 	var w, b, c int
 	word := flag.Bool("w", false, "Display the number of words")
 	bytes := flag.Bool("c", false, "Display the number of bytes")
-	lineCount := flag.Bool("l", false, "Display the number of lines")
+	lines := flag.Bool("l", false, "Display the number of lines")
 	chars := flag.Bool("m", false, "Display the number of characters. UTF-8 aware")
 
 	flag.Parse()
@@ -94,9 +98,11 @@ func main() {
 		*bytes = false
 	}
 
-	if !*word && !*lineCount && (!*bytes && !*chars) {
+	if !*word && !*lines && (!*bytes && !*chars) {
 		fmt.Println("No options selected")
-
+		*word = true
+		*lines = true
+		*bytes = true
 	}
 
 	if len(fileNames) == 0 && info.Mode()&os.ModeCharDevice == 0 {
@@ -105,6 +111,21 @@ func main() {
 
 	} else if len(fileNames) == 0 {
 		//Run until EOF hit ()
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			text, err := reader.ReadString('\n')
+			if err != nil {
+				//wc input ends when it receives EOF
+				if err != io.EOF{
+					panic(err)
+				}else{
+					break
+				}
+			}
+			newLine := initLine(text)
+			Lines = append(Lines,newLine)
+		}
+
 	} else {
 		//Process all files passed in
 	}
@@ -115,9 +136,10 @@ func main() {
 
 	} else {
 		w, b, c = parseLines(Lines)
-		fmt.Println(w, b, c)
+		
+		fmt.Printf("%8v%8v%8v\n",w, b, c)
 	}
 
 	fmt.Println(count, longest)
-	fmt.Println(*word, *bytes, *lineCount, *chars)
+	fmt.Println(*word, *bytes, *lines, *chars)
 }
