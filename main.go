@@ -3,13 +3,14 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
+
+	flags "github.com/jessevdk/go-flags"
 )
 
 type Line struct {
@@ -58,12 +59,6 @@ func parseInput(src io.Reader) ([]Line, int, int) {
 
 	scanner.Split(bufio.ScanRunes)
 	for scanner.Scan() {
-		/*if err := scanner.Err(); err != nil {
-			if err != io.EOF {
-				panic(err)
-			}
-			break
-		}*/
 		if scanner.Text() == "\n" {
 			if len(strings.Trim(line, "\n")) > longest {
 				longest = len(strings.Trim(line, "\n"))
@@ -87,20 +82,23 @@ func parseInput(src io.Reader) ([]Line, int, int) {
 }
 
 func main() {
+
+	var opts struct {
+		WordCount   bool `short:"w" description:"Display the number of words"`
+		LineCount   bool `short:"l" description:"Display the number of lines"`
+		ByteCount   bool `short:"c" description:"Display the number of bytes"`
+		CharCount   bool `short:"m" description:"Display the number of characters. UTF-8 aware. Supercedes -c"`
+		LongestLine bool `short:"L" description:"Display the line with the most bytes or characters (with -m). When there is more than one file, the longest line will be shown as the value for 'total'."`
+	}
+
 	var Lines []Line
 	var Files []FileInput
 	var count int
 
 	var w, b, c int
 	longest := 0
-	word := flag.Bool("w", false, "Display the number of words")
-	byteOut := flag.Bool("c", false, "Display the number of bytes")
-	lines := flag.Bool("l", false, "Display the number of lines")
-	chars := flag.Bool("m", false, "Display the number of characters. UTF-8 aware")
-	longestFlag := flag.Bool("L", false, "Display the number of bytes or characters (if -m is passed). If more than one file is provided, the longest line is reported in 'total'")
-	flag.Parse()
 
-	fileNames := flag.Args()
+	fileNames, _ := flags.Parse(&opts)
 
 	info, err := os.Stdin.Stat()
 	if err != nil {
@@ -108,14 +106,14 @@ func main() {
 	}
 
 	//Per the manpages, -m supercedes -c
-	if *byteOut && *chars {
-		*byteOut = false
+	if opts.ByteCount && opts.CharCount {
+		opts.ByteCount = false
 	}
-
-	if !*word && !*lines && (!*byteOut && !*chars) {
-		*word = true
-		*lines = true
-		*byteOut = true
+	//Default, with no flags provided is to show the line count, word count, and the byte count
+	if !opts.WordCount && !opts.LineCount && (!opts.ByteCount && !opts.CharCount) {
+		opts.WordCount = true
+		opts.LineCount = true
+		opts.ByteCount = true
 	}
 
 	if len(fileNames) == 0 && info.Mode()&os.ModeCharDevice == 0 {
@@ -175,37 +173,37 @@ func main() {
 				longest = f.longest
 			}
 
-			if *lines {
+			if opts.LineCount {
 				fmt.Printf("%8v", f.count)
 			}
-			if *word {
+			if opts.WordCount {
 				fmt.Printf("%8v", w)
 			}
-			if *byteOut {
+			if opts.ByteCount {
 				fmt.Printf("%8v", b)
 			}
-			if *chars {
+			if opts.CharCount {
 				fmt.Printf("%8v", c)
 			}
-			if *longestFlag {
+			if opts.LongestLine {
 				fmt.Printf("%8v", f.longest)
 			}
 			fmt.Printf(" %v\n", f.name)
 		}
 		if len(fileNames) > 1 {
-			if *lines {
+			if opts.LineCount {
 				fmt.Printf("%8v", totalLines)
 			}
-			if *word {
+			if opts.WordCount {
 				fmt.Printf("%8v", totalWords)
 			}
-			if *byteOut {
+			if opts.ByteCount {
 				fmt.Printf("%8v", totalBytes)
 			}
-			if *chars {
+			if opts.CharCount {
 				fmt.Printf("%8v", totalChars)
 			}
-			if *longestFlag {
+			if opts.LongestLine {
 				fmt.Printf("%8v", longest)
 			}
 			fmt.Printf(" total\n")
@@ -213,16 +211,16 @@ func main() {
 	} else {
 		w, b, c = parseLines(Lines)
 
-		if *lines {
+		if opts.LineCount {
 			fmt.Printf("%8v", count)
 		}
-		if *word {
+		if opts.WordCount {
 			fmt.Printf("%8v", w)
 		}
-		if *byteOut {
+		if opts.ByteCount {
 			fmt.Printf("%8v", b)
 		}
-		if *chars {
+		if opts.CharCount {
 			fmt.Printf("%8v", c)
 		}
 		fmt.Println()
