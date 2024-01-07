@@ -102,7 +102,7 @@ func main() {
 
 	info, err := os.Stdin.Stat()
 	if err != nil {
-		panic(err)
+		os.Exit(1)
 	}
 
 	//Per the manpages, -m supercedes -c
@@ -128,7 +128,7 @@ func main() {
 			byte, err := reader.ReadByte()
 			if err != nil {
 				if err != io.EOF {
-					panic(err)
+					os.Exit(1)
 				}
 				break
 			}
