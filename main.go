@@ -61,9 +61,8 @@ func parseInput(src io.Reader) ([]Line, int, int) {
 		if err:= scanner.Err(); err!=nil{
 			if err != io.EOF{
 				panic(err)
-			}else{
-				break
 			}
+			break
 		}
 		if scanner.Text() == "\n" {
 			if len(strings.Trim(line, "\n")) > longest {
@@ -128,18 +127,6 @@ func main() {
 		reader := bufio.NewReader(os.Stdin)
 		var byteArray []byte
 		for {
-			/*text, err := reader.ReadString('\n')
-			if err != nil {
-				//wc input ends when it receives EOF
-				if err != io.EOF {
-					panic(err)
-				} else {
-					break
-				}
-			}
-			newLine := initLine(text)
-			Lines = append(Lines, newLine)
-			*/
 			byte,err := reader.ReadByte()
 			if err != nil{
 				if err != io.EOF{
